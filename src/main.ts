@@ -100,10 +100,10 @@ function updateGun(scene: Phaser.Scene, t: number, dt: number, triggerDown: Bool
       gun.isFiring = true
       return 1
     } else {
-      const elapsed = t - gun.lastBulletTime
-      const bulletTakeTime = 1000 / gun.bulletsPerSecond
-      const newBullets = Math.floor(elapsed / bulletTakeTime)
-      gun.lastBulletTime += newBullets * bulletTakeTime
+      const timeElapsedSinceLastBullet = t - gun.lastBulletTime
+      const bulletTakesTime = 1000 / gun.bulletsPerSecond
+      const newBullets = Math.floor(timeElapsedSinceLastBullet / bulletTakesTime)
+      gun.lastBulletTime += newBullets * bulletTakesTime
       return newBullets
     }
   } else {
