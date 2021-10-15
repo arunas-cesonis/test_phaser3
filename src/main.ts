@@ -28,9 +28,21 @@ type PlayerKeys = CursorKeys & {
   fire: Phaser.Input.Keyboard.Key,
 }
 
-type Player = Phaser.Physics.Matter.Sprite
-type Bullet = Phaser.Physics.Matter.Sprite
-type Enemy = Phaser.Physics.Matter.Sprite
+type Sprite = Phaser.Physics.Matter.Sprite
+type Player = Sprite
+type Bullet = {
+  kind: 'bullet',
+}
+type Enemy = {
+  kind: 'enemy',
+}
+
+type Entity = Bullet | Enemy
+
+function isEntity(x: any): x is Entity {
+  return 'object' === typeof x && x.kind
+    && (x.kind == 'enemy' || x.kind == 'bullet')
+}
 
 type Gun = {
   isFiring: Boolean,
@@ -75,8 +87,16 @@ function create(this: Phaser.Scene) {
   spawnEnemy(scene, vec2(500, 0))
 
   scene.data.set('state', state)
-  scene.matter.world.on('collisionstart', function (event, bodyA, bodyB) {
-    console.log(1)
+  scene.matter.world.on('collisionstart', function (event, bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType) {
+    const entityA: Entity | null = bodyA.gameObject.getData('entity')
+    const entityB: Entity | null = bodyB.gameObject.getData('entity')
+    if (isEntity(entityA) && isEntity(entityB)) {
+      bodyA.gameObject.destroy()
+      bodyB.gameObject.destroy()
+    } else {
+      console.error('collision between non-on entities', bodyA, bodyB)
+      throw 'collision between non-entities'
+    }
   })
 }
 
@@ -105,26 +125,28 @@ function spawnPlayer(scene: Phaser.Scene, position: Phaser.Math.Vector2): Player
 }
 
 function spawnBullet(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-  const bullet = spawnCircle(scene, 0, 0, 5, 0xffff00)
-  bullet.setVelocity(20, 0)
-  bullet.setPosition(position.x, position.y)
+  const sprite = spawnCircle(scene, 0, 0, 5, 0xffff00)
+  sprite.setVelocity(20, 0)
+  sprite.setPosition(position.x, position.y)
+  sprite.setData('entity', { kind: 'bullet' })
   scene.tweens.add({
-    targets: bullet,
+    targets: sprite,
     alpha: 0,
     duration: 200,
-    delay: 400,
+    delay: 600,
     onComplete: () => {
-      bullet.destroy()
+      sprite.destroy()
     }
   })
 }
 
 function spawnEnemy(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-  const enemy = spawnRectangle(scene, 0, 0, 50, 50, 0xff0000)
-  enemy.setPosition(position.x, position.y)
-  enemy.alpha = 1
-  enemy.setFriction(0)
-  enemy.setFrictionAir(0)
+  const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0xff0000)
+  sprite.setPosition(position.x, position.y)
+  sprite.alpha = 1
+  sprite.setFriction(0)
+  sprite.setFrictionAir(0)
+  sprite.setData('entity', { kind: 'enemy' })
 }
 
 function updateGun(scene: Phaser.Scene, t: number, dt: number, triggerDown: Boolean, gun: Gun): number {
