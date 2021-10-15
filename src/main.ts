@@ -29,10 +29,12 @@ type PlayerKeys = CursorKeys & {
 }
 
 type Player = Phaser.Physics.Matter.Sprite
+type Bullet = Phaser.Physics.Matter.Sprite
 
 type Gun = {
   isFiring: Boolean,
-  lastFired: number
+  bulletsPerSecond: number,
+  lastBulletTime: number
 }
 
 type State = {
@@ -61,7 +63,8 @@ function create(this: Phaser.Scene) {
 
   const gun: Gun = {
     isFiring: false,
-    lastFired: 0
+    bulletsPerSecond: 20,
+    lastBulletTime: 0
   }
 
   const state: State = {
@@ -75,27 +78,52 @@ function create(this: Phaser.Scene) {
 
 function spawnBullet(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
   const rect = scene.add.rectangle(0, 0, 10, 10, 0xffff00)
-  const bullet = scene.matter.add.gameObject(rect) as Player
+  const bullet = scene.matter.add.gameObject(rect) as Bullet
   bullet.setVelocity(20, 0)
   bullet.setPosition(position.x, position.y)
   bullet.alpha = 1
+  bullet.setFriction(0)
+  bullet.setFrictionAir(0)
   scene.tweens.add({
     targets: bullet,
     alpha: 0,
     duration: 200,
     delay: 400,
-    onComplete: () => bullet.destroy()
+    onComplete: bullet.destroy
   })
+}
+
+function updateGun(scene: Phaser.Scene, t: number, dt: number, triggerDown: Boolean, gun: Gun): number {
+  if (triggerDown) {
+    if (!gun.isFiring) {
+      gun.lastBulletTime = t
+      gun.isFiring = true
+      return 1
+    } else {
+      const elapsed = t - gun.lastBulletTime
+      const bulletTakeTime = 1000 / gun.bulletsPerSecond
+      const newBullets = Math.floor(elapsed / bulletTakeTime)
+      gun.lastBulletTime += newBullets * bulletTakeTime
+      return newBullets
+    }
+  } else {
+    gun.isFiring = false
+    return 0
+  }
 }
 
 function update(this: Phaser.Scene) {
   const scene = this
+  const t = scene.game.loop.time
+  const dt = scene.game.loop.delta
   const state: State = scene.data.get('state')
 
   const playerVelocity = cursorKeysToVec2(state.keys).scale(10.0)
   state.player.setVelocity(playerVelocity.x, playerVelocity.y)
 
-  if (state.keys.fire.isDown) {
+  const newBullets = updateGun(scene, t, dt, state.keys.fire.isDown, state.gun)
+
+  for (let i = 0; i < newBullets; i++) {
     const position = vec2(state.player.x, state.player.y)
     position.x += 70
     spawnBullet(scene, position)
