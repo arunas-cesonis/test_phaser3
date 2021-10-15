@@ -30,6 +30,7 @@ type PlayerKeys = CursorKeys & {
 
 type Player = Phaser.Physics.Matter.Sprite
 type Bullet = Phaser.Physics.Matter.Sprite
+type Enemy = Phaser.Physics.Matter.Sprite
 
 type Gun = {
   isFiring: Boolean,
@@ -57,9 +58,7 @@ function create(this: Phaser.Scene) {
   camera.scrollY = -scene.sys.canvas.height * 0.5
 
   // scene.matter.world.setBounds(-1000, -1000, 1000, 1000)
-  const rect = this.add.rectangle(0, 0, 100, 50, 0xff0000)
-  const player = scene.matter.add.gameObject(rect) as Player
-  player.setPosition(100, 0)
+  const player = spawnPlayer(scene, vec2(100, 0))
 
   const gun: Gun = {
     isFiring: false,
@@ -73,17 +72,33 @@ function create(this: Phaser.Scene) {
     gun
   }
 
+  spawnEnemy(scene, vec2(500, 0))
+
   scene.data.set('state', state)
+  scene.matter.world.on('collisionstart', function (event, bodyA, bodyB) {
+    console.log(event)
+  })
+}
+
+function spawnRectangle(scene: Phaser.Scene, x: number, y: number, width: number, height: number, color: number): Phaser.Physics.Matter.Sprite {
+  const gameObject = scene.add.rectangle(x, y, width, height, color)
+  const rectangle = scene.matter.add.gameObject(gameObject) as Phaser.Physics.Matter.Sprite
+  // rectangle.setFriction(0)
+  // rectangle.setFrictionAir(0)
+  rectangle.setSensor(true)
+  return rectangle
+}
+
+function spawnPlayer(scene: Phaser.Scene, position: Phaser.Math.Vector2): Player {
+  const player = spawnRectangle(scene, 0, 0, 100, 50, 0x00aa00)
+  player.setPosition(position.x, position.y)
+  return player
 }
 
 function spawnBullet(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-  const rect = scene.add.rectangle(0, 0, 10, 10, 0xffff00)
-  const bullet = scene.matter.add.gameObject(rect) as Bullet
+  const bullet = spawnRectangle(scene, 0, 0, 10, 10, 0xffff00)
   bullet.setVelocity(20, 0)
   bullet.setPosition(position.x, position.y)
-  bullet.alpha = 1
-  bullet.setFriction(0)
-  bullet.setFrictionAir(0)
   scene.tweens.add({
     targets: bullet,
     alpha: 0,
@@ -91,6 +106,14 @@ function spawnBullet(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     delay: 400,
     onComplete: bullet.destroy
   })
+}
+
+function spawnEnemy(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
+  const enemy = spawnRectangle(scene, 0, 0, 50, 50, 0xff0000)
+  enemy.setPosition(position.x, position.y)
+  enemy.alpha = 1
+  enemy.setFriction(0)
+  enemy.setFrictionAir(0)
 }
 
 function updateGun(scene: Phaser.Scene, t: number, dt: number, triggerDown: Boolean, gun: Gun): number {
