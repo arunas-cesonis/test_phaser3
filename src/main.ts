@@ -89,6 +89,15 @@ function spawnRectangle(scene: Phaser.Scene, x: number, y: number, width: number
   return rectangle
 }
 
+function spawnCircle(scene: Phaser.Scene, x: number, y: number, radius: number, color: number): Phaser.Physics.Matter.Sprite {
+  const gameObject = scene.add.circle(x, y, radius, color)
+  const circle = scene.matter.add.gameObject(gameObject) as Phaser.Physics.Matter.Sprite
+  // rectangle.setFriction(0)
+  // rectangle.setFrictionAir(0)
+  circle.setSensor(true)
+  return circle
+}
+
 function spawnPlayer(scene: Phaser.Scene, position: Phaser.Math.Vector2): Player {
   const player = spawnRectangle(scene, 0, 0, 100, 50, 0x00aa00)
   player.setPosition(position.x, position.y)
@@ -96,7 +105,7 @@ function spawnPlayer(scene: Phaser.Scene, position: Phaser.Math.Vector2): Player
 }
 
 function spawnBullet(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-  const bullet = spawnRectangle(scene, 0, 0, 10, 10, 0xffff00)
+  const bullet = spawnCircle(scene, 0, 0, 5, 0xffff00)
   bullet.setVelocity(20, 0)
   bullet.setPosition(position.x, position.y)
   scene.tweens.add({
