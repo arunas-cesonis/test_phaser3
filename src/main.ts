@@ -76,7 +76,7 @@ function create(this: Phaser.Scene) {
 
   scene.data.set('state', state)
   scene.matter.world.on('collisionstart', function (event, bodyA, bodyB) {
-    console.log(event)
+    console.log(1)
   })
 }
 
@@ -113,7 +113,9 @@ function spawnBullet(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     alpha: 0,
     duration: 200,
     delay: 400,
-    onComplete: bullet.destroy
+    onComplete: () => {
+      bullet.destroy()
+    }
   })
 }
 
