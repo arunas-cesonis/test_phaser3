@@ -30,18 +30,59 @@ type PlayerKeys = CursorKeys & {
 
 type Sprite = Phaser.Physics.Matter.Sprite
 type Player = Sprite
-type Bullet = {
-  kind: 'bullet',
-}
-type Enemy = {
-  kind: 'enemy',
+
+abstract class Entity {
+  constructor(public readonly sprite: Sprite) {
+    this.sprite.setData('entity', this)
+  }
 }
 
-type Entity = Bullet | Enemy
+class Enemy extends Entity {
+  constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
+    const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0xff0000)
+    super(sprite)
+    sprite.setPosition(position.x, position.y)
+    sprite.alpha = 1
+    sprite.setFriction(0)
+    sprite.setFrictionAir(0)
+  }
+}
 
-function isEntity(x: any): x is Entity {
-  return 'object' === typeof x && x.kind
-    && (x.kind == 'enemy' || x.kind == 'bullet')
+class Bullet extends Entity {
+  constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
+    const sprite = spawnCircle(scene, 0, 0, 5, 0xffff00)
+    super(sprite)
+    sprite.setVelocity(20, 0)
+    sprite.setPosition(position.x, position.y)
+    scene.tweens.add({
+      targets: sprite,
+      alpha: 0,
+      duration: 200,
+      delay: 600,
+      onComplete: () => {
+        sprite.destroy()
+      }
+    })
+  }
+}
+
+function collideEnemyBullet(enemy: Enemy, bullet: Bullet) {
+  enemy.sprite.destroy()
+  bullet.sprite.destroy()
+}
+
+function collideEntities(a: Entity, b: Entity) {
+  if (a instanceof Enemy) {
+    if (b instanceof Bullet) {
+      return collideEnemyBullet(a, b)
+    }
+  }
+  if (a instanceof Bullet) {
+    if (b instanceof Enemy) {
+      return collideEnemyBullet(b, a)
+    }
+  }
+  console.error('unresolved entity collision', a, b)
 }
 
 type Gun = {
@@ -84,18 +125,20 @@ function create(this: Phaser.Scene) {
     gun
   }
 
-  spawnEnemy(scene, vec2(500, 0))
+  new Enemy(scene, vec2(500, -200))
+  new Enemy(scene, vec2(500, -100))
+  new Enemy(scene, vec2(500, 0))
+  new Enemy(scene, vec2(500, 100))
+  new Enemy(scene, vec2(500, 200))
 
   scene.data.set('state', state)
   scene.matter.world.on('collisionstart', function (event, bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType) {
-    const entityA: Entity | null = bodyA.gameObject.getData('entity')
-    const entityB: Entity | null = bodyB.gameObject.getData('entity')
-    if (isEntity(entityA) && isEntity(entityB)) {
-      bodyA.gameObject.destroy()
-      bodyB.gameObject.destroy()
+    const entityA = bodyA.gameObject.getData('entity')
+    const entityB = bodyB.gameObject.getData('entity')
+    if (entityA instanceof Entity && entityB instanceof Entity) {
+      collideEntities(entityA, entityB)
     } else {
-      console.error('collision between non-on entities', bodyA, bodyB)
-      throw 'collision between non-entities'
+      console.error('non entity collision', bodyA, bodyB)
     }
   })
 }
@@ -124,29 +167,8 @@ function spawnPlayer(scene: Phaser.Scene, position: Phaser.Math.Vector2): Player
   return player
 }
 
-function spawnBullet(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-  const sprite = spawnCircle(scene, 0, 0, 5, 0xffff00)
-  sprite.setVelocity(20, 0)
-  sprite.setPosition(position.x, position.y)
-  sprite.setData('entity', { kind: 'bullet' })
-  scene.tweens.add({
-    targets: sprite,
-    alpha: 0,
-    duration: 200,
-    delay: 600,
-    onComplete: () => {
-      sprite.destroy()
-    }
-  })
-}
-
 function spawnEnemy(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-  const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0xff0000)
-  sprite.setPosition(position.x, position.y)
-  sprite.alpha = 1
-  sprite.setFriction(0)
-  sprite.setFrictionAir(0)
-  sprite.setData('entity', { kind: 'enemy' })
+  new Enemy(scene, position)
 }
 
 function updateGun(scene: Phaser.Scene, t: number, dt: number, triggerDown: Boolean, gun: Gun): number {
@@ -182,7 +204,7 @@ function update(this: Phaser.Scene) {
   for (let i = 0; i < newBullets; i++) {
     const position = vec2(state.player.x, state.player.y)
     position.x += 70
-    spawnBullet(scene, position)
+    new Bullet(scene, position)
   }
 }
 
