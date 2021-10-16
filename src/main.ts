@@ -89,6 +89,23 @@ class Enemy extends Entity {
     super(sprite)
     sprite.setPosition(position.x, position.y)
     sprite.setVelocityX(-1)
+    sprite.alpha = 0
+    sprite.scale = 0
+    scene.tweens.add({
+      targets: sprite,
+      alpha: 1,
+      scale: 1,
+      duration: 200
+    })
+    scene.tweens.add({
+      targets: sprite,
+      duration: 200,
+      delay: 10000,
+      alpha: 0,
+      onComplete: () => {
+        sprite.destroy()
+      }
+    })
   }
 }
 
@@ -147,12 +164,6 @@ function create(this: Phaser.Scene) {
     player,
   }
 
-  new Enemy(scene, vec2(500, -200))
-  new Enemy(scene, vec2(500, -100))
-  new Enemy(scene, vec2(500, 0))
-  new Enemy(scene, vec2(500, 100))
-  new Enemy(scene, vec2(500, 200))
-
   scene.data.set('state', state)
   scene.matter.world.on('collisionstart', function (event, bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType) {
     const entityA = bodyA.gameObject.getData('entity')
@@ -161,6 +172,17 @@ function create(this: Phaser.Scene) {
       collideEntities(entityA, entityB)
     } else {
       console.error('non entity collision', bodyA, bodyB)
+    }
+  })
+
+  let spawnCount = 0
+  const spawnY = [-200, -100, 0, 100, 200]
+  scene.time.addEvent({
+    delay: 1000,
+    loop: true,
+    callback: function () {
+      const y = spawnY[(spawnCount++) % spawnY.length]
+      new Enemy(scene, vec2(900, y))
     }
   })
 }
@@ -204,7 +226,7 @@ const config = {
       gravity: {
         y: 0
       },
-      debug: false
+      debug: true
     }
   },
   scene: {
