@@ -29,11 +29,18 @@ type PlayerKeys = CursorKeys & {
 }
 
 type Sprite = Phaser.Physics.Matter.Sprite
-type Player = Sprite
 
 abstract class Entity {
   constructor(public readonly sprite: Sprite) {
     this.sprite.setData('entity', this)
+  }
+}
+
+class Player extends Entity {
+  constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
+    const sprite = spawnRectangle(scene, 0, 0, 100, 50, 0x00aa00)
+    super(sprite)
+    sprite.setPosition(position.x, position.y)
   }
 }
 
@@ -111,7 +118,7 @@ function create(this: Phaser.Scene) {
   camera.scrollY = -scene.sys.canvas.height * 0.5
 
   // scene.matter.world.setBounds(-1000, -1000, 1000, 1000)
-  const player = spawnPlayer(scene, vec2(100, 0))
+  const player = new Player(scene, vec2(100, 0))
 
   const gun: Gun = {
     isFiring: false,
@@ -197,12 +204,12 @@ function update(this: Phaser.Scene) {
   const state: State = scene.data.get('state')
 
   const playerVelocity = cursorKeysToVec2(state.keys).scale(10.0)
-  state.player.setVelocity(playerVelocity.x, playerVelocity.y)
+  state.player.sprite.setVelocity(playerVelocity.x, playerVelocity.y)
 
   const newBullets = updateGun(scene, t, dt, state.keys.fire.isDown, state.gun)
 
   for (let i = 0; i < newBullets; i++) {
-    const position = vec2(state.player.x, state.player.y)
+    const position = vec2(state.player.sprite.x, state.player.sprite.y)
     position.x += 70
     new Bullet(scene, position)
   }
