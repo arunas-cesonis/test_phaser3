@@ -88,7 +88,7 @@ class Enemy extends Entity {
     const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0xff0000)
     super(sprite)
     sprite.setPosition(position.x, position.y)
-    sprite.setVelocityX(-1)
+    sprite.setVelocityX(-2)
     sprite.alpha = 0
     sprite.scale = 0
     scene.tweens.add({
@@ -132,8 +132,18 @@ function collideEnemyBullet(enemy: Enemy, bullet: Bullet) {
   bullet.sprite.destroy()
 }
 
+function collideEnemyPlayer(enemy: Enemy, player: Player) {
+  player.sprite.scene.scene.restart()
+}
+
 function collideEntities(a: Entity, b: Entity) {
-  if (a instanceof Enemy && b instanceof Bullet) return collideEnemyBullet(a, b)
+  if (a instanceof Enemy) {
+    if (b instanceof Bullet) return collideEnemyBullet(a, b)
+    if (b instanceof Player) return collideEnemyPlayer(a, b)
+  }
+  if (a instanceof Player) {
+    if (b instanceof Enemy) return collideEnemyPlayer(b, a)
+  }
   if (a instanceof Bullet && b instanceof Enemy) return collideEnemyBullet(b, a)
   console.error('unresolved entity collision', a, b, a.sprite.x, a.sprite.y)
 }
