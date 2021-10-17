@@ -109,6 +109,14 @@ class Enemy extends Entity {
   }
 }
 
+class SnakeEnemy extends Entity {
+  constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
+    const sprite = spawnCircle(scene, 0, 0, 20, 0xff5500)
+    super(sprite)
+    sprite.setPosition(position.x, position.y)
+  }
+}
+
 class Bullet extends Entity {
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     const sprite = spawnCircle(scene, 0, 0, 5, 0xffff00)
@@ -185,6 +193,8 @@ function create(this: Phaser.Scene) {
     }
   })
 
+  new SnakeEnemy(scene, vec2(600, 0))
+
   let spawnCount = 0
   const spawnY = [-200, -100, 0, 100, 200]
   scene.time.addEvent({
@@ -209,6 +219,7 @@ function spawnRectangle(scene: Phaser.Scene, x: number, y: number, width: number
 function spawnCircle(scene: Phaser.Scene, x: number, y: number, radius: number, color: number): Phaser.Physics.Matter.Sprite {
   const gameObject = scene.add.circle(x, y, radius, color)
   const circle = scene.matter.add.gameObject(gameObject) as Phaser.Physics.Matter.Sprite
+  circle.setBody('circle')
   circle.setFriction(0)
   circle.setFrictionAir(0)
   circle.setSensor(true)
