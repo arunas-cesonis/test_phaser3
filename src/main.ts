@@ -196,7 +196,7 @@ function create(this: Phaser.Scene) {
   new SnakeEnemy(scene, vec2(600, 0))
 
   let spawnCount = 0
-  const spawnY = [-200, -100, 0, 100, 200]
+  const spawnY = [-200, -100, 100, 200]
   scene.time.addEvent({
     delay: 1000,
     loop: true,
