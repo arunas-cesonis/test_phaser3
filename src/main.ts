@@ -33,6 +33,8 @@ type Sprite = Phaser.Physics.Matter.Sprite
 abstract class Entity {
   constructor(public readonly sprite: Sprite) {
     this.sprite.setData('entity', this)
+    const state: State = this.sprite.scene.data.get('state')
+    throw 'add to entitites'
   }
 }
 
@@ -159,6 +161,7 @@ function collideEntities(a: Entity, b: Entity) {
 type State = {
   keys: PlayerKeys,
   player: Player,
+  entities: Phaser.GameObjects.Group
 }
 
 function create(this: Phaser.Scene) {
@@ -176,10 +179,12 @@ function create(this: Phaser.Scene) {
 
   // scene.matter.world.setBounds(-1000, -1000, 1000, 1000)
   const player = new Player(scene, vec2(100, 0))
+  const entities = scene.add.group()
 
   const state: State = {
     keys,
     player,
+    entities
   }
 
   scene.data.set('state', state)
