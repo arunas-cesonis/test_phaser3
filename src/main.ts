@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser'
 
-function l(...args) {
+function l(...args: any[]) {
   console.log.apply(console, args)
 }
 
@@ -192,7 +192,7 @@ function create(this: Phaser.Scene) {
   }
 
   scene.data.set('state', state)
-  scene.matter.world.on('collisionstart', function (event, bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType) {
+  scene.matter.world.on('collisionstart', function (event: any, bodyA: MatterJS.BodyType, bodyB: MatterJS.BodyType) {
     const entityA = bodyA.gameObject.getData('entity')
     const entityB = bodyB.gameObject.getData('entity')
     if (entityA instanceof Entity && entityB instanceof Entity) {

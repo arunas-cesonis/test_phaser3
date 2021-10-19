@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tsconfig/recommended": "^1.0.1",
     "parcel": "^2.0.0",
     "phaser": "^3.55.2"
   }
