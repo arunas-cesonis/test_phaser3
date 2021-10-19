@@ -31,10 +31,13 @@ type PlayerKeys = CursorKeys & {
 type Sprite = Phaser.Physics.Matter.Sprite
 
 abstract class Entity {
+  public readonly state: State
   constructor(public readonly sprite: Sprite) {
     this.sprite.setData('entity', this)
-    const state: State = this.sprite.scene.data.get('state')
-    throw 'add to entitites'
+    this.state = this.sprite.scene.data.get('state')
+    this.state.entities.add(this.sprite)
+  }
+  update(t: number, dt: number) {
   }
 }
 
@@ -78,10 +81,15 @@ class Player extends Entity {
     this.gun = new Gun(scene)
     sprite.setPosition(position.x, position.y)
   }
-  update(t: number, dt: number, triggerDown: boolean) {
+  update(t: number, dt: number) {
+    const keys: PlayerKeys = this.state.keys
+
+    const playerVelocity = cursorKeysToVec2(keys).scale(10.0)
+    this.sprite.setVelocity(playerVelocity.x, playerVelocity.y)
+
     const gunPosition = vec2(this.sprite.x, this.sprite.y)
     gunPosition.x += 70
-    this.gun.update(t, dt, triggerDown, gunPosition)
+    this.gun.update(t, dt, keys.fire.isDown, gunPosition)
   }
 }
 
@@ -160,7 +168,6 @@ function collideEntities(a: Entity, b: Entity) {
 
 type State = {
   keys: PlayerKeys,
-  player: Player,
   entities: Phaser.GameObjects.Group
 }
 
@@ -178,13 +185,10 @@ function create(this: Phaser.Scene) {
   camera.scrollY = -scene.sys.canvas.height * 0.5
 
   // scene.matter.world.setBounds(-1000, -1000, 1000, 1000)
-  const player = new Player(scene, vec2(100, 0))
-  const entities = scene.add.group()
 
   const state: State = {
     keys,
-    player,
-    entities
+    entities: new Phaser.GameObjects.Group(scene)
   }
 
   scene.data.set('state', state)
@@ -198,6 +202,7 @@ function create(this: Phaser.Scene) {
     }
   })
 
+  new Player(scene, vec2(100, 0))
   new SnakeEnemy(scene, vec2(600, 0))
 
   let spawnCount = 0
@@ -236,10 +241,9 @@ function update(this: Phaser.Scene) {
   const t = scene.game.loop.time
   const dt = scene.game.loop.delta
   const state: State = scene.data.get('state')
-
-  const playerVelocity = cursorKeysToVec2(state.keys).scale(10.0)
-  state.player.sprite.setVelocity(playerVelocity.x, playerVelocity.y)
-  state.player.update(t, dt, state.keys.fire.isDown)
+  for (const child of state.entities.getChildren()) {
+    child.getData('entity').update(t, dt)
+  }
 }
 
 const config = {
