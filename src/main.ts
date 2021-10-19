@@ -124,6 +124,10 @@ class SnakeEnemy extends Entity {
     const sprite = spawnCircle(scene, 0, 0, 20, 0xff5500)
     super(sprite)
     sprite.setPosition(position.x, position.y)
+    sprite.setVelocityX(-4)
+  }
+  override update(t: number, dt: number) {
+    this.sprite.setPosition(this.sprite.x, Math.sin(this.sprite.x / 20) * 20)
   }
 }
 
