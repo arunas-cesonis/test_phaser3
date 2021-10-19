@@ -127,7 +127,7 @@ class SnakeEnemy extends Entity {
     sprite.setVelocityX(-4)
   }
   override update(t: number, dt: number) {
-    this.sprite.setPosition(this.sprite.x, Math.sin(this.sprite.x / 20) * 20)
+    this.sprite.setPosition(this.sprite.x, Math.sin(this.sprite.x / 80) * 50)
   }
 }
 
@@ -149,24 +149,16 @@ class Bullet extends Entity {
   }
 }
 
-function collideEnemyBullet(enemy: Enemy, bullet: Bullet) {
-  enemy.sprite.destroy()
-  bullet.sprite.destroy()
-}
-
-function collideEnemyPlayer(enemy: Enemy, player: Player) {
-  player.sprite.scene.scene.restart()
+function collideBulletToEntity(bullet: Bullet, entity: Entity) {
 }
 
 function collideEntities(a: Entity, b: Entity) {
-  if (a instanceof Enemy) {
-    if (b instanceof Bullet) return collideEnemyBullet(a, b)
-    if (b instanceof Player) return collideEnemyPlayer(a, b)
+  if (a instanceof Bullet) {
+    return collideBulletToEntity(a, b)
   }
-  if (a instanceof Player) {
-    if (b instanceof Enemy) return collideEnemyPlayer(b, a)
+  if (b instanceof Bullet) {
+    return collideBulletToEntity(b, a)
   }
-  if (a instanceof Bullet && b instanceof Enemy) return collideEnemyBullet(b, a)
   console.error('unresolved entity collision', a, b, a.sprite.x, a.sprite.y)
 }
 
@@ -208,6 +200,12 @@ function create(this: Phaser.Scene) {
 
   new Player(scene, vec2(100, 0))
   new SnakeEnemy(scene, vec2(600, 0))
+  new SnakeEnemy(scene, vec2(650, 0))
+  new SnakeEnemy(scene, vec2(700, 0))
+  new SnakeEnemy(scene, vec2(750, 0))
+  new SnakeEnemy(scene, vec2(800, 0))
+  new SnakeEnemy(scene, vec2(850, 0))
+  new SnakeEnemy(scene, vec2(900, 0))
 
   let spawnCount = 0
   const spawnY = [-200, -100, 100, 200]
