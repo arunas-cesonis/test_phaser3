@@ -81,7 +81,7 @@ class Player extends Entity {
     this.gun = new Gun(scene)
     sprite.setPosition(position.x, position.y)
   }
-  update(t: number, dt: number) {
+  override update(t: number, dt: number) {
     const keys: PlayerKeys = this.state.keys
 
     const playerVelocity = cursorKeysToVec2(keys).scale(10.0)
