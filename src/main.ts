@@ -86,8 +86,10 @@ class Player extends Entity {
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     const sprite = spawnRectangle(scene, 0, 0, 100, 50, 0x00aa00)
     super(sprite)
-    this.gun = new Gun(scene)
+    sprite.setCollisionCategory(this.state.collisionCategories.player)
+    sprite.setCollidesWith(this.state.collisionCategories.enemies)
     sprite.setPosition(position.x, position.y)
+    this.gun = new Gun(scene)
   }
   override update(t: number, dt: number) {
     const keys: PlayerKeys = this.state.keys
@@ -116,6 +118,8 @@ class Enemy extends Entity {
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0xff0000)
     super(sprite)
+    sprite.setCollisionCategory(this.state.collisionCategories.enemies)
+    sprite.setCollidesWith(this.state.collisionCategories.player)
     sprite.setPosition(position.x, position.y)
     sprite.setVelocityX(-2)
     sprite.alpha = 0
@@ -145,9 +149,13 @@ class Enemy extends Entity {
 }
 
 class SnakeEnemy extends Entity {
+  public readonly spawnPosition: Phaser.Math.Vector2
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     const sprite = spawnCircle(scene, 0, 0, 20, 0xff5500)
     super(sprite)
+    this.spawnPosition = position
+    sprite.setCollisionCategory(this.state.collisionCategories.enemies)
+    sprite.setCollidesWith(this.state.collisionCategories.player)
     sprite.setPosition(position.x, position.y)
     sprite.setVelocityX(-4)
     sprite.alpha = 0
@@ -170,7 +178,7 @@ class SnakeEnemy extends Entity {
   }
   updatePosition() {
     const x = this.sprite.x
-    this.sprite.setPosition(x, Math.sin(this.sprite.x / 80) * 50)
+    this.sprite.setPosition(x, Math.sin(this.sprite.x / 80) * 50 + this.spawnPosition.y)
     if (x < 100) {
       this.destroy()
     }
@@ -191,6 +199,8 @@ class Bullet extends Entity {
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     const sprite = spawnCircle(scene, 0, 0, 5, 0xffff00)
     super(sprite)
+    sprite.setCollisionCategory(this.state.collisionCategories.player)
+    sprite.setCollidesWith(this.state.collisionCategories.enemies)
     sprite.setPosition(position.x, position.y)
     sprite.setVelocity(20, 0)
     scene.tweens.add({
@@ -226,15 +236,21 @@ const defaultConfig: Config = {
   godMode: true
 }
 
+type CollisionCategories = {
+  enemies: number,
+  player: number,
+}
+
 type State = {
   config: Config,
   keys: PlayerKeys,
-  entities: Phaser.GameObjects.Group
+  entities: Phaser.GameObjects.Group,
+  collisionCategories: CollisionCategories
 }
 
 function spawnSnakeEnemy(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
   scene.time.addEvent({
-    repeat: 8,
+    repeat: 6,
     delay: 200,
     callback: () => {
       new SnakeEnemy(scene, position)
@@ -257,10 +273,16 @@ function create(this: Phaser.Scene) {
 
   // scene.matter.world.setBounds(-1000, -1000, 1000, 1000)
 
+  const collisionCategories = {
+    enemies: scene.matter.world.nextCategory(),
+    player: scene.matter.world.nextCategory(),
+  }
+
   const state: State = {
     config: defaultConfig,
     keys,
-    entities: new Phaser.GameObjects.Group(scene)
+    entities: new Phaser.GameObjects.Group(scene),
+    collisionCategories
   }
 
   scene.data.set('state', state)
@@ -279,16 +301,23 @@ function create(this: Phaser.Scene) {
   spawnSnakeEnemy(scene, vec2(900, 200))
   scene.time.addEvent({
     loop: true,
-    delay: 4000,
+    delay: 8000,
     callback: () => {
       spawnSnakeEnemy(scene, vec2(900, 200))
+    }
+  })
+  scene.time.addEvent({
+    loop: true,
+    delay: 4000,
+    callback: () => {
+      spawnSnakeEnemy(scene, vec2(900, -200))
     }
   })
 
   let spawnCount = 0
   const spawnY = [-200, -100, 100, 200]
   scene.time.addEvent({
-    delay: 1000,
+    delay: 2000,
     loop: true,
     callback: function () {
       const y = spawnY[(spawnCount++) % spawnY.length]
