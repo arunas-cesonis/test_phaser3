@@ -39,6 +39,14 @@ abstract class Entity {
   }
   update(t: number, dt: number) {
   }
+  takeDamage(amount: number) {
+  }
+  dealDamage(): number {
+    return 0
+  }
+  destroy() {
+    this.sprite.destroy()
+  }
 }
 
 class Gun {
@@ -91,6 +99,17 @@ class Player extends Entity {
     gunPosition.x += 70
     this.gun.update(t, dt, keys.fire.isDown, gunPosition)
   }
+  override dealDamage() {
+    return 1
+  }
+  override takeDamage(amount: number) {
+    if (amount > 0) {
+      this.destroy()
+    }
+  }
+  override destroy() {
+    this.sprite.scene.scene.restart()
+  }
 }
 
 class Enemy extends Entity {
@@ -113,9 +132,17 @@ class Enemy extends Entity {
       delay: 10000,
       alpha: 0,
       onComplete: () => {
-        sprite.destroy()
+        this.destroy()
       }
     })
+  }
+  override dealDamage() {
+    return 1
+  }
+  override takeDamage(amount: number) {
+    if (amount > 0) {
+      this.destroy()
+    }
   }
 }
 
@@ -128,6 +155,14 @@ class SnakeEnemy extends Entity {
   }
   override update(t: number, dt: number) {
     this.sprite.setPosition(this.sprite.x, Math.sin(this.sprite.x / 80) * 50)
+  }
+  override takeDamage(amount: number) {
+    if (amount > 0) {
+      this.destroy()
+    }
+  }
+  override dealDamage(): number {
+    return 1
   }
 }
 
@@ -143,23 +178,25 @@ class Bullet extends Entity {
       duration: 200,
       delay: 600,
       onComplete: () => {
-        sprite.destroy()
+        this.destroy()
       }
     })
   }
-}
-
-function collideBulletToEntity(bullet: Bullet, entity: Entity) {
+  override takeDamage(amount: number) {
+    if (amount > 0) {
+      this.destroy()
+    }
+  }
+  override dealDamage(): number {
+    return 1
+  }
 }
 
 function collideEntities(a: Entity, b: Entity) {
-  if (a instanceof Bullet) {
-    return collideBulletToEntity(a, b)
-  }
-  if (b instanceof Bullet) {
-    return collideBulletToEntity(b, a)
-  }
-  console.error('unresolved entity collision', a, b, a.sprite.x, a.sprite.y)
+  const aDamage = a.dealDamage()
+  const bDamage = b.dealDamage()
+  a.takeDamage(bDamage)
+  b.takeDamage(aDamage)
 }
 
 type State = {
