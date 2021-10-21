@@ -100,11 +100,12 @@ class Player extends Entity {
     this.gun.update(t, dt, keys.fire.isDown, gunPosition)
   }
   override dealDamage() {
-    //return 1
-    return 0
+    return 1
   }
   override takeDamage(amount: number) {
-    // this.destroy()
+    if (!this.state.config.godMode) {
+      this.destroy()
+    }
   }
   override destroy() {
     this.sprite.scene.scene.restart()
@@ -139,7 +140,6 @@ class Enemy extends Entity {
     return 1
   }
   override takeDamage(amount: number) {
-    l('Enemy take damage ' + amount)
     this.destroy()
   }
 }
@@ -180,7 +180,6 @@ class SnakeEnemy extends Entity {
     this.updatePosition()
   }
   override takeDamage(amount: number) {
-    l('SnakeEnemy takeDamage ' + amount)
     this.destroy()
   }
   override dealDamage(): number {
@@ -219,7 +218,16 @@ function collideEntities(a: Entity, b: Entity) {
   if (aDamage !== 0) b.takeDamage(aDamage)
 }
 
+type Config = {
+  godMode: boolean
+}
+
+const defaultConfig: Config = {
+  godMode: true
+}
+
 type State = {
+  config: Config,
   keys: PlayerKeys,
   entities: Phaser.GameObjects.Group
 }
@@ -250,6 +258,7 @@ function create(this: Phaser.Scene) {
   // scene.matter.world.setBounds(-1000, -1000, 1000, 1000)
 
   const state: State = {
+    config: defaultConfig,
     keys,
     entities: new Phaser.GameObjects.Group(scene)
   }
