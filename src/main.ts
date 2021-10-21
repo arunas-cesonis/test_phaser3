@@ -100,12 +100,11 @@ class Player extends Entity {
     this.gun.update(t, dt, keys.fire.isDown, gunPosition)
   }
   override dealDamage() {
-    return 1
+    //return 1
+    return 0
   }
   override takeDamage(amount: number) {
-    if (amount > 0) {
-      this.destroy()
-    }
+    // this.destroy()
   }
   override destroy() {
     this.sprite.scene.scene.restart()
@@ -140,9 +139,8 @@ class Enemy extends Entity {
     return 1
   }
   override takeDamage(amount: number) {
-    if (amount > 0) {
-      this.destroy()
-    }
+    l('Enemy take damage ' + amount)
+    this.destroy()
   }
 }
 
@@ -152,17 +150,41 @@ class SnakeEnemy extends Entity {
     super(sprite)
     sprite.setPosition(position.x, position.y)
     sprite.setVelocityX(-4)
+    sprite.alpha = 0
+    scene.tweens.add({
+      targets: sprite,
+      duration: 200,
+      delay: 0,
+      alpha: 1,
+    })
+    scene.tweens.add({
+      targets: sprite,
+      duration: 200,
+      delay: 10000,
+      alpha: 0,
+      onComplete: () => {
+        this.destroy()
+      }
+    })
+    this.updatePosition()
   }
-  override update(t: number, dt: number) {
-    this.sprite.setPosition(this.sprite.x, Math.sin(this.sprite.x / 80) * 50)
-  }
-  override takeDamage(amount: number) {
-    if (amount > 0) {
+  updatePosition() {
+    const x = this.sprite.x
+    this.sprite.setPosition(x, Math.sin(this.sprite.x / 80) * 50)
+    if (x < 100) {
       this.destroy()
     }
+
+  }
+  override update(t: number, dt: number) {
+    this.updatePosition()
+  }
+  override takeDamage(amount: number) {
+    l('SnakeEnemy takeDamage ' + amount)
+    this.destroy()
   }
   override dealDamage(): number {
-    return 1
+    return 2
   }
 }
 
@@ -183,9 +205,7 @@ class Bullet extends Entity {
     })
   }
   override takeDamage(amount: number) {
-    if (amount > 0) {
-      this.destroy()
-    }
+    this.destroy()
   }
   override dealDamage(): number {
     return 1
@@ -195,13 +215,23 @@ class Bullet extends Entity {
 function collideEntities(a: Entity, b: Entity) {
   const aDamage = a.dealDamage()
   const bDamage = b.dealDamage()
-  a.takeDamage(bDamage)
-  b.takeDamage(aDamage)
+  if (bDamage !== 0) a.takeDamage(bDamage)
+  if (aDamage !== 0) b.takeDamage(aDamage)
 }
 
 type State = {
   keys: PlayerKeys,
   entities: Phaser.GameObjects.Group
+}
+
+function spawnSnakeEnemy(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
+  scene.time.addEvent({
+    repeat: 8,
+    delay: 200,
+    callback: () => {
+      new SnakeEnemy(scene, position)
+    }
+  })
 }
 
 function create(this: Phaser.Scene) {
@@ -236,13 +266,15 @@ function create(this: Phaser.Scene) {
   })
 
   new Player(scene, vec2(100, 0))
-  new SnakeEnemy(scene, vec2(600, 0))
-  new SnakeEnemy(scene, vec2(650, 0))
-  new SnakeEnemy(scene, vec2(700, 0))
-  new SnakeEnemy(scene, vec2(750, 0))
-  new SnakeEnemy(scene, vec2(800, 0))
-  new SnakeEnemy(scene, vec2(850, 0))
-  new SnakeEnemy(scene, vec2(900, 0))
+
+  spawnSnakeEnemy(scene, vec2(900, 200))
+  scene.time.addEvent({
+    loop: true,
+    delay: 4000,
+    callback: () => {
+      spawnSnakeEnemy(scene, vec2(900, 200))
+    }
+  })
 
   let spawnCount = 0
   const spawnY = [-200, -100, 100, 200]
