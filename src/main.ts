@@ -8,12 +8,12 @@ function vec2(x: number, y: number): Phaser.Math.Vector2 {
   return new Phaser.Math.Vector2(x, y)
 }
 
-function cursorKeysToVec2(cursorKeys: CursorKeys): Phaser.Math.Vector2 {
+function playerInputToVec2(playerINput: PlayerInput): Phaser.Math.Vector2 {
   const v = vec2(0, 0)
-  if (cursorKeys.right.isDown) v.x = 1;
-  if (cursorKeys.left.isDown) v.x = -1;
-  if (cursorKeys.down.isDown) v.y = 1;
-  if (cursorKeys.up.isDown) v.y = -1;
+  if (playerINput.right) v.x = 1;
+  if (playerINput.left) v.x = -1;
+  if (playerINput.down) v.y = 1;
+  if (playerINput.up) v.y = -1;
   return v
 }
 
@@ -22,6 +22,26 @@ type CursorKeys = {
   down: Phaser.Input.Keyboard.Key,
   left: Phaser.Input.Keyboard.Key,
   right: Phaser.Input.Keyboard.Key,
+}
+
+type PlayerInput = {
+  up: boolean,
+  down: boolean,
+  left: boolean,
+  right: boolean,
+  fire: boolean,
+  attack: boolean,
+}
+
+function emptyPlayerInput(): PlayerInput {
+  return {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    fire: false,
+    attack: false,
+  }
 }
 
 type PlayerKeys = CursorKeys & {
@@ -125,6 +145,7 @@ class Sword extends Entity {
   }
   updateSword(trigger: boolean, position: Phaser.Math.Vector2, facingAngle: number) {
     if (trigger && !this.attacking) {
+      this.attacking = true
       this.sprite.scene.tweens.add({
         targets: this.follower,
         duration: 200,
@@ -171,11 +192,11 @@ class Player extends Entity {
     this.sprite.add(this.swordPathGraphics)
   }
   override update(t: number, dt: number) {
-    const keys: PlayerKeys = this.state.keys
+    const playerInput: PlayerInput = this.state.playerInput
     const mouse = vec2(this.sprite.scene.game.input.mousePointer.x, this.sprite.scene.game.input.mousePointer.y)
 
     // player
-    const playerVelocity = cursorKeysToVec2(keys).scale(10.0)
+    const playerVelocity = playerInputToVec2(playerInput).scale(10.0)
     this.sprite.setVelocity(playerVelocity.x, playerVelocity.y)
 
     const pointer = this.sprite.scene.cameras.main.getWorldPoint(
@@ -188,11 +209,11 @@ class Player extends Entity {
     // gun
     const gunPosition = vec2(this.sprite.x, this.sprite.y)
     gunPosition.x += 70
-    this.gun.update(t, dt, keys.fire.isDown, gunPosition)
+    this.gun.update(t, dt, playerInput.fire, gunPosition)
 
     // sword
     const swordPosition = vec2(this.sprite.x, this.sprite.y)
-    this.sword.updateSword(keys.attack.isDown, swordPosition, facingAngle)
+    this.sword.updateSword(playerInput.attack, swordPosition, facingAngle)
   }
   override dealDamage() {
     return 1
@@ -337,7 +358,8 @@ type State = {
   config: Config,
   keys: PlayerKeys,
   entities: Phaser.GameObjects.Group,
-  collisionCategories: CollisionCategories
+  collisionCategories: CollisionCategories,
+  playerInput: PlayerInput
 }
 
 function spawnSnakeEnemy(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
@@ -375,7 +397,8 @@ function create(this: Phaser.Scene) {
     config: defaultConfig,
     keys,
     entities: new Phaser.GameObjects.Group(scene),
-    collisionCategories
+    collisionCategories,
+    playerInput: emptyPlayerInput()
   }
 
   scene.data.set('state', state)
@@ -456,6 +479,14 @@ function update(this: Phaser.Scene) {
   const t = scene.game.loop.time
   const dt = scene.game.loop.delta
   const state: State = scene.data.get('state')
+
+  state.playerInput.up = state.keys.up.isDown
+  state.playerInput.down = state.keys.down.isDown
+  state.playerInput.left = state.keys.left.isDown
+  state.playerInput.right = state.keys.right.isDown
+  state.playerInput.fire = state.keys.fire.isDown
+  state.playerInput.attack = scene.game.input.activePointer.isDown
+
   for (const child of state.entities.getChildren()) {
     child.getData('entity').update(t, dt)
   }
