@@ -29,10 +29,24 @@ type PlayerKeys = CursorKeys & {
 }
 
 type Sprite = Phaser.Physics.Matter.Sprite
+type Container = Phaser.GameObjects.Container
+type MatterContainer = Phaser.GameObjects.Container
+  & Phaser.Physics.Matter.Components.Bounce
+  & Phaser.Physics.Matter.Components.Collision
+  & Phaser.Physics.Matter.Components.Force
+  & Phaser.Physics.Matter.Components.Friction
+  & Phaser.Physics.Matter.Components.Gravity
+  & Phaser.Physics.Matter.Components.Mass
+  & Phaser.Physics.Matter.Components.Sensor
+  & Phaser.Physics.Matter.Components.SetBody
+  & Phaser.Physics.Matter.Components.Sleep
+  & Phaser.Physics.Matter.Components.Static
+  & Phaser.Physics.Matter.Components.Transform
+  & Phaser.Physics.Matter.Components.Velocity
 
 abstract class Entity {
   public readonly state: State
-  constructor(public readonly sprite: Sprite) {
+  constructor(public readonly sprite: MatterContainer) {
     this.sprite.setData('entity', this)
     this.state = this.sprite.scene.data.get('state')
     this.state.entities.add(this.sprite)
@@ -81,14 +95,16 @@ class Gun {
   }
 }
 
+
 class Player extends Entity {
   private gun: Gun
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-    const sprite = spawnRectangle(scene, 0, 0, 100, 50, 0x00aa00)
+    const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0x00aa00)
     super(sprite)
     sprite.setCollisionCategory(this.state.collisionCategories.player)
     sprite.setCollidesWith(this.state.collisionCategories.enemies)
     sprite.setPosition(position.x, position.y)
+
     this.gun = new Gun(scene)
   }
   override update(t: number, dt: number) {
@@ -121,7 +137,7 @@ class Enemy extends Entity {
     sprite.setCollisionCategory(this.state.collisionCategories.enemies)
     sprite.setCollidesWith(this.state.collisionCategories.player)
     sprite.setPosition(position.x, position.y)
-    sprite.setVelocityX(-2)
+    sprite.setVelocityX(-3)
     sprite.alpha = 0
     sprite.scale = 0
     scene.tweens.add({
@@ -326,23 +342,36 @@ function create(this: Phaser.Scene) {
   })
 }
 
-function spawnRectangle(scene: Phaser.Scene, x: number, y: number, width: number, height: number, color: number): Phaser.Physics.Matter.Sprite {
-  const gameObject = scene.add.rectangle(x, y, width, height, color)
-  const rectangle = scene.matter.add.gameObject(gameObject) as Phaser.Physics.Matter.Sprite
-  rectangle.setFriction(0)
-  rectangle.setFrictionAir(0)
-  rectangle.setSensor(true)
-  return rectangle
+function spawnRectangle(scene: Phaser.Scene, x: number, y: number, width: number, height: number, color: number): MatterContainer {
+  const rectangle = new Phaser.GameObjects.Rectangle(scene, 0, 0, width, height, color)
+  const container = new Phaser.GameObjects.Container(scene)
+  container.add(rectangle)
+
+  const body = scene.matter.bodies.rectangle(x, y, width, height)
+  const obj = scene.matter.add.gameObject(container, body) as MatterContainer
+  scene.add.existing(obj)
+
+  obj.setFriction(0)
+  obj.setFrictionAir(0)
+  obj.setSensor(true)
+
+  return obj
 }
 
-function spawnCircle(scene: Phaser.Scene, x: number, y: number, radius: number, color: number): Phaser.Physics.Matter.Sprite {
-  const gameObject = scene.add.circle(x, y, radius, color)
-  const circle = scene.matter.add.gameObject(gameObject) as Phaser.Physics.Matter.Sprite
-  circle.setBody('circle')
-  circle.setFriction(0)
-  circle.setFrictionAir(0)
-  circle.setSensor(true)
-  return circle
+function spawnCircle(scene: Phaser.Scene, x: number, y: number, radius: number, color: number): MatterContainer {
+  const circle = scene.add.circle(0, 0, radius, color)
+  const container = new Phaser.GameObjects.Container(scene)
+  container.add(circle)
+
+  const body = scene.matter.bodies.circle(x, y, radius)
+  const obj = scene.matter.add.gameObject(container, body) as MatterContainer
+  scene.add.existing(obj)
+
+  obj.setFriction(0)
+  obj.setFrictionAir(0)
+  obj.setSensor(true)
+
+  return obj
 }
 
 function update(this: Phaser.Scene) {
