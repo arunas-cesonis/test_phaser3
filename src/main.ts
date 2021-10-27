@@ -139,7 +139,7 @@ class Sword extends Entity {
   private follower: { t: number }
   private attacking: boolean
   constructor(scene: Phaser.Scene) {
-    const sprite = spawnRectangle(scene, 0, 0, 10, 50, 0xff00ff)
+    const sprite = spawnRectangle(scene, 0, 0, 10, 70, 0xff00ff)
     super(sprite)
     sprite.setCollisionCategory(this.state.collisionCategories.player)
     sprite.setCollidesWith(this.state.collisionCategories.enemies)
@@ -506,8 +506,8 @@ function update(this: Phaser.Scene) {
   state.playerInput.down = state.keys.down.isDown
   state.playerInput.left = state.keys.left.isDown
   state.playerInput.right = state.keys.right.isDown
-  state.playerInput.fire = state.keys.fire.isDown
-  state.playerInput.attack = scene.game.input.activePointer.isDown
+  state.playerInput.fire = state.keys.fire.isDown || scene.game.input.activePointer.rightButtonDown()
+  state.playerInput.attack = scene.game.input.activePointer.leftButtonDown()
 
   for (const child of state.entities.getChildren()) {
     child.getData('entity').update(t, dt)
