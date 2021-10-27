@@ -110,7 +110,7 @@ class Sword extends Entity {
   private follower: { t: number }
   private attacking: boolean
   constructor(scene: Phaser.Scene) {
-    const sprite = spawnRectangle(scene, 0, 0, 50, 10, 0xff00ff)
+    const sprite = spawnRectangle(scene, 0, 0, 10, 50, 0xff00ff)
     super(sprite)
     sprite.setCollisionCategory(this.state.collisionCategories.player)
     sprite.setCollidesWith(this.state.collisionCategories.enemies)
@@ -140,7 +140,7 @@ class Sword extends Entity {
 
     const tangent = this.path.getTangent(this.follower.t)
     const rad = Math.atan2(tangent.y, tangent.x)
-    const angle = Phaser.Math.RadToDeg(rad) + 90
+    const angle = Phaser.Math.RadToDeg(rad)
     fullPosition.add(this.path.getPoint(this.follower.t))
 
     this.sprite.angle = angle
