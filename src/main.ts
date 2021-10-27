@@ -148,7 +148,7 @@ class Sword extends Entity {
       this.attacking = true
       this.sprite.scene.tweens.add({
         targets: this.follower,
-        duration: 200,
+        duration: 600,
         t: 1,
         onComplete: () => {
           this.attacking = false
@@ -171,6 +171,15 @@ class Sword extends Entity {
   }
   override dealDamage(): number {
     return 1
+  }
+}
+
+function toAbsMax(x: number, max: number) {
+  const tmp = Math.min(max, Math.abs(x))
+  if (x < 0) {
+    return -tmp
+  } else {
+    return tmp
   }
 }
 
@@ -203,8 +212,16 @@ class Player extends Entity {
       this.sprite.scene.game.input.mousePointer.x,
       this.sprite.scene.game.input.mousePointer.y,
     )
-    const facingAngle = 180 + Phaser.Math.RadToDeg(Phaser.Math.Angle.BetweenPoints(pointer, vec2(this.sprite.x, this.sprite.y)))
-    this.sprite.setAngle(facingAngle)
+    const targetAngle =
+      Phaser.Math.Angle.WrapDegrees(
+        180 + Phaser.Math.RadToDeg(Phaser.Math.Angle.BetweenPoints(pointer, vec2(this.sprite.x, this.sprite.y)))
+      )
+    const currentAngle = this.sprite.angle
+    const shortestBetween = Phaser.Math.Angle.ShortestBetween(targetAngle, currentAngle)
+
+    const facingAngle = currentAngle - toAbsMax(shortestBetween, 0.5 * dt)
+
+    this.sprite.angle = facingAngle
 
     // gun
     const gunPosition = vec2(this.sprite.x, this.sprite.y)
