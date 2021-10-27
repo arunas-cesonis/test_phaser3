@@ -122,9 +122,8 @@ class Sword extends Entity {
     ])
     this.follower = { t: 0 }
     this.attacking = false
-
   }
-  updateSword(trigger: boolean, position: Phaser.Math.Vector2) {
+  updateSword(trigger: boolean, position: Phaser.Math.Vector2, facingAngle: number) {
     if (trigger && !this.attacking) {
       this.sprite.scene.tweens.add({
         targets: this.follower,
@@ -136,16 +135,18 @@ class Sword extends Entity {
         }
       })
     }
-    const fullPosition = position.clone()
 
-    const tangent = this.path.getTangent(this.follower.t)
-    const rad = Math.atan2(tangent.y, tangent.x)
-    const angle = Phaser.Math.RadToDeg(rad)
-    fullPosition.add(this.path.getPoint(this.follower.t))
+    const pathPoint = this.path.getPoint(this.follower.t)
+    const pathTangent = this.path.getTangent(this.follower.t)
+    const pathRad = Math.atan2(pathTangent.y, pathTangent.x)
+    const pathDeg = Phaser.Math.RadToDeg(pathRad)
 
-    this.sprite.angle = angle
-    this.sprite.x = fullPosition.x
-    this.sprite.y = fullPosition.y
+    const spritePosition = position.clone().add(vec2(0, 20)).add(pathPoint)
+    const spritePositionR = Phaser.Math.RotateAround(spritePosition.clone(), position.x, position.y, Phaser.Math.DegToRad(facingAngle))
+
+    this.sprite.x = spritePositionR.x
+    this.sprite.y = spritePositionR.y
+    this.sprite.angle = facingAngle + pathDeg
   }
   override dealDamage(): number {
     return 1
@@ -157,7 +158,7 @@ class Player extends Entity {
   public readonly sword: Sword
   public swordPathGraphics: Phaser.GameObjects.Graphics
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
-    const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0x00aa00)
+    const sprite = spawnRectangle(scene, 0, 0, 50, 100, 0x00aa00)
     super(sprite)
     sprite.setCollisionCategory(this.state.collisionCategories.player)
     sprite.setCollidesWith(this.state.collisionCategories.enemies)
@@ -166,14 +167,23 @@ class Player extends Entity {
     this.gun = new Gun(scene)
     this.sword = new Sword(scene)
     this.swordPathGraphics = pathToGraphics(scene, this.sword.path)
-    scene.add.existing(this.swordPathGraphics)
+    this.swordPathGraphics.y += 20
+    this.sprite.add(this.swordPathGraphics)
   }
   override update(t: number, dt: number) {
     const keys: PlayerKeys = this.state.keys
+    const mouse = vec2(this.sprite.scene.game.input.mousePointer.x, this.sprite.scene.game.input.mousePointer.y)
 
     // player
     const playerVelocity = cursorKeysToVec2(keys).scale(10.0)
     this.sprite.setVelocity(playerVelocity.x, playerVelocity.y)
+
+    const pointer = this.sprite.scene.cameras.main.getWorldPoint(
+      this.sprite.scene.game.input.mousePointer.x,
+      this.sprite.scene.game.input.mousePointer.y,
+    )
+    const facingAngle = 180 + Phaser.Math.RadToDeg(Phaser.Math.Angle.BetweenPoints(pointer, vec2(this.sprite.x, this.sprite.y)))
+    this.sprite.setAngle(facingAngle)
 
     // gun
     const gunPosition = vec2(this.sprite.x, this.sprite.y)
@@ -181,10 +191,8 @@ class Player extends Entity {
     this.gun.update(t, dt, keys.fire.isDown, gunPosition)
 
     // sword
-    const swordPosition = vec2(this.sprite.x, this.sprite.y + 20)
-    this.sword.updateSword(keys.attack.isDown, swordPosition)
-    this.swordPathGraphics.x = swordPosition.x
-    this.swordPathGraphics.y = swordPosition.y
+    const swordPosition = vec2(this.sprite.x, this.sprite.y)
+    this.sword.updateSword(keys.attack.isDown, swordPosition, facingAngle)
   }
   override dealDamage() {
     return 1
