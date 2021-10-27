@@ -26,11 +26,13 @@ type CursorKeys = {
 
 type PlayerKeys = CursorKeys & {
   fire: Phaser.Input.Keyboard.Key,
+  attack: Phaser.Input.Keyboard.Key,
 }
 
 type Sprite = Phaser.Physics.Matter.Sprite
 type Container = Phaser.GameObjects.Container
-type MatterContainer = Phaser.GameObjects.Container
+
+type MatterContainer = Omit<Phaser.GameObjects.Container, 'body'>
   & Phaser.Physics.Matter.Components.Bounce
   & Phaser.Physics.Matter.Components.Collision
   & Phaser.Physics.Matter.Components.Force
@@ -43,6 +45,7 @@ type MatterContainer = Phaser.GameObjects.Container
   & Phaser.Physics.Matter.Components.Static
   & Phaser.Physics.Matter.Components.Transform
   & Phaser.Physics.Matter.Components.Velocity
+  & { body: MatterJS.BodyType }
 
 abstract class Entity {
   public readonly state: State
@@ -95,9 +98,64 @@ class Gun {
   }
 }
 
+function pathToGraphics(scene: Phaser.Scene, path: Phaser.Curves.Path): Phaser.GameObjects.Graphics {
+  const graphics = new Phaser.GameObjects.Graphics(scene)
+  graphics.lineStyle(1, 0xff0000, 1)
+  path.draw(graphics)
+  return graphics
+}
+
+class Sword extends Entity {
+  public readonly path: Phaser.Curves.Path
+  private follower: { t: number }
+  private attacking: boolean
+  constructor(scene: Phaser.Scene) {
+    const sprite = spawnRectangle(scene, 0, 0, 50, 10, 0xff00ff)
+    super(sprite)
+    sprite.setCollisionCategory(this.state.collisionCategories.player)
+    sprite.setCollidesWith(this.state.collisionCategories.enemies)
+
+    this.path = new Phaser.Curves.Path(0, 0).splineTo([
+      vec2(70, 70),
+      vec2(70, -80),
+      vec2(0, 0),
+    ])
+    this.follower = { t: 0 }
+    this.attacking = false
+
+  }
+  updateSword(trigger: boolean, position: Phaser.Math.Vector2) {
+    if (trigger && !this.attacking) {
+      this.sprite.scene.tweens.add({
+        targets: this.follower,
+        duration: 200,
+        t: 1,
+        onComplete: () => {
+          this.attacking = false
+          this.follower.t = 0
+        }
+      })
+    }
+    const fullPosition = position.clone()
+
+    const tangent = this.path.getTangent(this.follower.t)
+    const rad = Math.atan2(tangent.y, tangent.x)
+    const angle = Phaser.Math.RadToDeg(rad) + 90
+    fullPosition.add(this.path.getPoint(this.follower.t))
+
+    this.sprite.angle = angle
+    this.sprite.x = fullPosition.x
+    this.sprite.y = fullPosition.y
+  }
+  override dealDamage(): number {
+    return 1
+  }
+}
 
 class Player extends Entity {
-  private gun: Gun
+  private readonly gun: Gun
+  public readonly sword: Sword
+  public swordPathGraphics: Phaser.GameObjects.Graphics
   constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
     const sprite = spawnRectangle(scene, 0, 0, 50, 50, 0x00aa00)
     super(sprite)
@@ -106,16 +164,27 @@ class Player extends Entity {
     sprite.setPosition(position.x, position.y)
 
     this.gun = new Gun(scene)
+    this.sword = new Sword(scene)
+    this.swordPathGraphics = pathToGraphics(scene, this.sword.path)
+    scene.add.existing(this.swordPathGraphics)
   }
   override update(t: number, dt: number) {
     const keys: PlayerKeys = this.state.keys
 
+    // player
     const playerVelocity = cursorKeysToVec2(keys).scale(10.0)
     this.sprite.setVelocity(playerVelocity.x, playerVelocity.y)
 
+    // gun
     const gunPosition = vec2(this.sprite.x, this.sprite.y)
     gunPosition.x += 70
     this.gun.update(t, dt, keys.fire.isDown, gunPosition)
+
+    // sword
+    const swordPosition = vec2(this.sprite.x, this.sprite.y + 20)
+    this.sword.updateSword(keys.attack.isDown, swordPosition)
+    this.swordPathGraphics.x = swordPosition.x
+    this.swordPathGraphics.y = swordPosition.y
   }
   override dealDamage() {
     return 1
@@ -198,7 +267,6 @@ class SnakeEnemy extends Entity {
     if (x < 100) {
       this.destroy()
     }
-
   }
   override update(t: number, dt: number) {
     this.updatePosition()
@@ -282,6 +350,7 @@ function create(this: Phaser.Scene) {
     left: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
     right: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     fire: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+    attack: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J),
   }
 
   const camera = scene.cameras.main
