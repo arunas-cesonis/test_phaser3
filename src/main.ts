@@ -8,6 +8,15 @@ function vec2(x: number, y: number): Phaser.Math.Vector2 {
   return new Phaser.Math.Vector2(x, y)
 }
 
+function toAbsMax(x: number, max: number) {
+  const tmp = Math.min(max, Math.abs(x))
+  if (x < 0) {
+    return -tmp
+  } else {
+    return tmp
+  }
+}
+
 function playerInputToVec2(playerINput: PlayerInput): Phaser.Math.Vector2 {
   const v = vec2(0, 0)
   if (playerINput.right) v.x = 1;
@@ -110,10 +119,10 @@ class Gun {
       return 0
     }
   }
-  update(t: number, dt: number, triggerDown: boolean, position: Phaser.Math.Vector2) {
+  update(t: number, dt: number, triggerDown: boolean, position: Phaser.Math.Vector2, fireAngle: number) {
     const newBullets = this.fireBullets(t, dt, triggerDown)
     for (let i = 0; i < newBullets; i++) {
-      new Bullet(this.scene, position)
+      new Bullet(this.scene, position, fireAngle)
     }
   }
 }
@@ -134,7 +143,6 @@ class Sword extends Entity {
     super(sprite)
     sprite.setCollisionCategory(this.state.collisionCategories.player)
     sprite.setCollidesWith(this.state.collisionCategories.enemies)
-
     this.path = new Phaser.Curves.Path(0, 0).splineTo([
       vec2(70, 70),
       vec2(70, -80),
@@ -148,7 +156,7 @@ class Sword extends Entity {
       this.attacking = true
       this.sprite.scene.tweens.add({
         targets: this.follower,
-        duration: 600,
+        duration: 400,
         t: 1,
         onComplete: () => {
           this.attacking = false
@@ -174,15 +182,6 @@ class Sword extends Entity {
   }
 }
 
-function toAbsMax(x: number, max: number) {
-  const tmp = Math.min(max, Math.abs(x))
-  if (x < 0) {
-    return -tmp
-  } else {
-    return tmp
-  }
-}
-
 class Player extends Entity {
   private readonly gun: Gun
   public readonly sword: Sword
@@ -205,7 +204,7 @@ class Player extends Entity {
     const mouse = vec2(this.sprite.scene.game.input.mousePointer.x, this.sprite.scene.game.input.mousePointer.y)
 
     // player
-    const playerVelocity = playerInputToVec2(playerInput).scale(10.0)
+    const playerVelocity = playerInputToVec2(playerInput).scale(6.0)
     this.sprite.setVelocity(playerVelocity.x, playerVelocity.y)
 
     const pointer = this.sprite.scene.cameras.main.getWorldPoint(
@@ -218,15 +217,15 @@ class Player extends Entity {
       )
     const currentAngle = this.sprite.angle
     const shortestBetween = Phaser.Math.Angle.ShortestBetween(targetAngle, currentAngle)
-
     const facingAngle = currentAngle - toAbsMax(shortestBetween, 0.5 * dt)
 
     this.sprite.angle = facingAngle
 
     // gun
-    const gunPosition = vec2(this.sprite.x, this.sprite.y)
-    gunPosition.x += 70
-    this.gun.update(t, dt, playerInput.fire, gunPosition)
+    const playerPosition = vec2(this.sprite.x, this.sprite.y)
+    const gunPosition = playerPosition.clone().add(vec2(70, 0))
+    const gunPositionRotated = Phaser.Math.RotateAround(gunPosition.clone(), playerPosition.x, playerPosition.y, Phaser.Math.DegToRad(facingAngle))
+    this.gun.update(t, dt, playerInput.fire, gunPositionRotated, facingAngle)
 
     // sword
     const swordPosition = vec2(this.sprite.x, this.sprite.y)
@@ -326,13 +325,19 @@ class SnakeEnemy extends Entity {
 }
 
 class Bullet extends Entity {
-  constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2) {
+  constructor(scene: Phaser.Scene, position: Phaser.Math.Vector2, fireAngle: number) {
     const sprite = spawnCircle(scene, 0, 0, 5, 0xffff00)
     super(sprite)
     sprite.setCollisionCategory(this.state.collisionCategories.player)
     sprite.setCollidesWith(this.state.collisionCategories.enemies)
     sprite.setPosition(position.x, position.y)
-    sprite.setVelocity(20, 0)
+
+
+    const fireAngleRad = Phaser.Math.DegToRad(fireAngle)
+    const speed = 20
+
+    sprite.setVelocity(Math.cos(fireAngleRad) * speed, Math.sin(fireAngleRad) * speed)
+
     scene.tweens.add({
       targets: sprite,
       alpha: 0,
